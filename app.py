@@ -48,15 +48,17 @@ if uploaded_file is not None:
     # ✅ حذف الأعمدة الزائدة
     df = df[expected_cols]
 
-    # ✅ تحويل القيم إلى float
-    df = df.apply(pd.to_numeric, errors='ignore')
+# ✅ تحويل القيم إلى رقمية
+df = df.apply(pd.to_numeric, errors='ignore')
 
-    # ✅ تطبيق StandardScaler
-    X_scaled = scaler.transform(df)
+# ✅ تحويل إلى numpy لتجاوز مشكلة أسماء الأعمدة
+X_scaled = scaler.transform(df.to_numpy())
 
-    # ✅ التنبؤ
-    predictions = model.predict(X_scaled)
-    df["Prediction"] = predictions
+# ✅ التنبؤ
+predictions = model.predict(X_scaled)
+
+df["Prediction"] = predictions
+
 
     st.write("✅ **Prediction Results:**")
     st.dataframe(df[["Prediction"]].head())
@@ -67,3 +69,4 @@ if uploaded_file is not None:
 
 else:
     st.info("⬆️ Please upload a CSV file to start analysis.")
+
