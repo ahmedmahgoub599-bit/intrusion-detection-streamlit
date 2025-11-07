@@ -31,7 +31,7 @@ if uploaded_file is not None:
         df["attack_type"] = "unknown"
 
     # -----------------------------
-    # تحويل categorical مثل التدريب
+    # تحويل categorical إلى One-Hot
     # -----------------------------
     cat_cols = ["protocol_type", "service", "flag"]
     for col in cat_cols:
@@ -46,35 +46,30 @@ if uploaded_file is not None:
             df.drop(col, axis=1, inplace=True)
 
     # -----------------------------
-    # تجهيز أعمدة النموذج المتوقعة
+    # ضبط الأعمدة لتطابق النموذج
     # -----------------------------
     if hasattr(model, "feature_names_in_"):
         expected_cols = list(model.feature_names_in_)
+
+        # إضافة الأعمدة الناقصة بـ0
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = 0
+
+        # حذف الأعمدة الزائدة
+        df = df[expected_cols]
     else:
-        expected_cols = df.columns.tolist()  # fallback
+        expected_cols = df.columns.tolist()
 
     # -----------------------------
-    # إضافة الأعمدة الناقصة بـ 0
+    # تحويل كل القيم إلى float وتعبئة NaN بـ 0
     # -----------------------------
-    for col in expected_cols:
-        if col not in df.columns:
-            df[col] = 0
-
-    # -----------------------------
-    # حذف الأعمدة الزائدة
-    # -----------------------------
-    df = df[expected_cols]
-
-    # -----------------------------
-    # تحويل جميع القيم إلى float وتعبئة NaN بـ 0
-    # -----------------------------
-    df = df.apply(pd.to_numeric, errors='coerce')  # يحول النصوص إلى NaN
-    df = df.fillna(0)  # أي NaN تصبح 0
+    df = df.apply(pd.to_numeric, errors='coerce').fillna(0)
 
     # -----------------------------
     # تطبيق StandardScaler
     # -----------------------------
-    X_scaled = scaler.transform(df.values.astype(float))
+    X_scaled = scaler.transform(df.values)
 
     # -----------------------------
     # التنبؤ
