@@ -2,43 +2,68 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-st.set_page_config(page_title="IDS Demo", layout="wide")
-st.title("🚨 نظام كشف التسلل (IDS) - عرض توضيحي")
-st.write("ارفع ملف CSV يحتوي على بيانات الشبكة ليتم التنبؤ إذا كانت حركة طبيعية أو هجوم.")
-
-# Load model and scaler
+# تحميل النموذج والمقياس
 model = joblib.load("model.pkl")
 scaler = joblib.load("scaler.pkl")
 
-# File uploader
-uploaded_file = st.file_uploader("اختر ملف CSV", type="csv")
-if uploaded_file:
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.subheader("معاينة البيانات")
-        st.dataframe(df.head())
+st.title("🚨 Intrusion Detection System (IDS)")
+st.write("Upload network traffic CSV to detect **Normal vs Attack**")
 
-        # Scale features
-        X_scaled = scaler.transform(df.values)
+uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
 
-        # Predict
-        preds = model.predict(X_scaled)
-        df['Prediction'] = ["Normal" if p=="normal" else "Attack" for p in preds]
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
 
-        st.subheader("النتائج")
-        st.dataframe(df)
+    st.write("📄 **Preview uploaded data:**")
+    st.dataframe(df.head())
 
-        st.subheader("ملخص")
-        st.write(df['Prediction'].value_counts())
+    # ✅ إنشاء عمود attack_type إذا غير موجود
+    if "label" in df.columns:
+        df["attack_type"] = df["label"].apply(lambda x: "normal" if x=="normal" else "attack")
+    elif "attack_type" not in df.columns:
+        df["attack_type"] = "unknown"
 
-        # Download button
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="تحميل النتائج (CSV)",
-            data=csv,
-            file_name='predictions.csv',
-            mime='text/csv'
-        )
+    # ✅ تحويل categorical مثل التدريب
+    cat_cols = ["protocol_type", "service", "flag"]
+    for col in cat_cols:
+        if col in df.columns:
+            df = pd.get_dummies(df, columns=[col], drop_first=True)
 
-    except Exception as e:
-        st.error(f"حدث خطأ: {e}\nتأكد أن ملف CSV يحتوي على نفس الأعمدة المستخدمة أثناء التدريب.")
+    # ✅ حذف أعمدة لا نحتاجها (مثل التدريب)
+    for col in ["label", "level"]:
+        if col in df.columns:
+            df.drop(col, axis=1, inplace=True)
+
+    # ✅ تجهيز أعمدة النموذج المتوقعة
+    if hasattr(model, "feature_names_in_"):
+        expected_cols = list(model.feature_names_in_)
+    else:
+        expected_cols = df.columns.tolist()  # fallback
+
+    # ✅ إضافة الأعمدة الناقصة بـ 0
+    for col in expected_cols:
+        if col not in df.columns:
+            df[col] = 0
+
+    # ✅ حذف الأعمدة الزائدة
+    df = df[expected_cols]
+
+    # ✅ تحويل القيم إلى float
+    df = df.apply(pd.to_numeric, errors='ignore')
+
+    # ✅ تطبيق StandardScaler
+    X_scaled = scaler.transform(df)
+
+    # ✅ التنبؤ
+    predictions = model.predict(X_scaled)
+    df["Prediction"] = predictions
+
+    st.write("✅ **Prediction Results:**")
+    st.dataframe(df[["Prediction"]].head())
+
+    # ✅ ملخص النتائج
+    st.write("📊 **Summary:**")
+    st.write(df["Prediction"].value_counts())
+
+else:
+    st.info("⬆️ Please upload a CSV file to start analysis.")
