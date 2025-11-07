@@ -31,7 +31,7 @@ if uploaded_file is not None:
         df["attack_type"] = "unknown"
 
     # -----------------------------
-    # تحويل categorical إلى One-Hot
+    # تحويل الأعمدة النصية إلى One-Hot
     # -----------------------------
     cat_cols = ["protocol_type", "service", "flag"]
     for col in cat_cols:
@@ -39,7 +39,7 @@ if uploaded_file is not None:
             df = pd.get_dummies(df, columns=[col], drop_first=True)
 
     # -----------------------------
-    # حذف أعمدة غير مهمة
+    # حذف الأعمدة غير المهمة
     # -----------------------------
     for col in ["label", "level"]:
         if col in df.columns:
@@ -48,21 +48,18 @@ if uploaded_file is not None:
     # -----------------------------
     # ضبط الأعمدة لتطابق النموذج تمامًا
     # -----------------------------
-    if hasattr(model, "feature_names_in_"):
-        expected_cols = list(model.feature_names_in_)
+    expected_cols = list(model.feature_names_in_)
 
-        # إضافة الأعمدة الناقصة بـ0
-        for col in expected_cols:
-            if col not in df.columns:
-                df[col] = 0
+    # إضافة الأعمدة الناقصة بـ0
+    for col in expected_cols:
+        if col not in df.columns:
+            df[col] = 0
 
-        # حذف الأعمدة الزائدة
-        df = df[expected_cols]
-    else:
-        expected_cols = df.columns.tolist()
+    # حذف الأعمدة الزائدة
+    df = df[expected_cols]
 
     # -----------------------------
-    # تحويل كل القيم إلى float وتعبئة أي NaN بـ0
+    # تحويل كل القيم إلى float وتعبئة NaN بـ0
     # -----------------------------
     df = df.apply(pd.to_numeric, errors='coerce').fillna(0)
 
