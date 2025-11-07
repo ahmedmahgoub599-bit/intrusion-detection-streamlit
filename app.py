@@ -66,14 +66,15 @@ if uploaded_file is not None:
     df = df[expected_cols]
 
     # -----------------------------
-    # تحويل القيم إلى float لتجنب مشاكل StandardScaler
+    # تحويل جميع القيم إلى float وتعبئة NaN بـ 0
     # -----------------------------
-    df = df.apply(pd.to_numeric, errors='ignore')
+    df = df.apply(pd.to_numeric, errors='coerce')  # يحول النصوص إلى NaN
+    df = df.fillna(0)  # أي NaN تصبح 0
 
     # -----------------------------
-    # تطبيق StandardScaler (تحويل إلى numpy لتجاوز فحص feature_names)
+    # تطبيق StandardScaler
     # -----------------------------
-    X_scaled = scaler.transform(df.to_numpy())
+    X_scaled = scaler.transform(df.values.astype(float))
 
     # -----------------------------
     # التنبؤ
