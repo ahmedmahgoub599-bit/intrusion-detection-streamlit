@@ -46,7 +46,7 @@ if uploaded_file is not None:
             df.drop(col, axis=1, inplace=True)
 
     # -----------------------------
-    # ضبط الأعمدة لتطابق النموذج
+    # ضبط الأعمدة لتطابق النموذج تمامًا
     # -----------------------------
     if hasattr(model, "feature_names_in_"):
         expected_cols = list(model.feature_names_in_)
@@ -62,7 +62,7 @@ if uploaded_file is not None:
         expected_cols = df.columns.tolist()
 
     # -----------------------------
-    # تحويل كل القيم إلى float وتعبئة NaN بـ 0
+    # تحويل كل القيم إلى float وتعبئة أي NaN بـ0
     # -----------------------------
     df = df.apply(pd.to_numeric, errors='coerce').fillna(0)
 
