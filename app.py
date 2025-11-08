@@ -1,45 +1,53 @@
 import pandas as pd
 import streamlit as st
 import joblib
+import os
 
-# Load trained model
-model = joblib.load("model.pkl")
-
+st.set_page_config(page_title="Intrusion Detection IDS", layout="wide")
 st.title("Intrusion Detection System (IDS) - Cloud Demo")
-st.write("Upload CSV file (with raw values for protocol_type, service, flag)")
+st.write("Upload CSV file (raw NSL-KDD data) to predict Normal/Attack traffic.")
 
-uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+# ---- تحميل النموذج والاعمدة ----
+MODEL_PATH = "model.pkl"
+COLUMNS_PATH = "model_columns.pkl"
 
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+if not os.path.exists(MODEL_PATH) or not os.path.exists(COLUMNS_PATH):
+    st.error("❌ يجب رفع model.pkl و model_columns.pkl مع التطبيق.")
+else:
+    model = joblib.load(MODEL_PATH)
+    model_columns = joblib.load(COLUMNS_PATH)
+
+    # ---- رفع ملف المستخدم ----
+    uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
     
-    # Columns to encode
-    categorical_cols = ['protocol_type', 'service', 'flag']
-    
-    # One-hot encoding
-    df_encoded = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
-    
-    # Drop label/level if present
-    df_encoded = df_encoded.drop(columns=[col for col in ['label','level'] if col in df_encoded.columns])
-    
-    # Ensure same columns as training (add missing columns with 0)
-    training_columns = joblib.load("model_columns.pkl")  # يجب أن تحفظ قائمة الأعمدة المستخدمة في التدريب
-    for col in training_columns:
-        if col not in df_encoded.columns:
-            df_encoded[col] = 0
-    df_encoded = df_encoded[training_columns]
-    
-    st.write("### Sample Encoded Data")
-    st.write(df_encoded.head())
-    
-    # Predict
-    preds = model.predict(df_encoded)
-    df['Prediction'] = preds
-    df['Prediction'] = df['Prediction'].map({0: "Normal", 1: "Attack"})
-    
-    st.write("### Prediction Results")
-    st.write(df[['Prediction']].head())
-    
-    # Download predictions
-    output = df[['Prediction']].to_csv(index=False).encode('utf-8')
-    st.download_button("Download Predictions", output, "IDS_Output.csv", "text/csv")
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+        st.write("### Sample of Uploaded Data")
+        st.dataframe(df.head())
+
+        # ---- One-Hot Encoding للأعمدة النصية ----
+        categorical_cols = ['protocol_type', 'service', 'flag']
+        df_encoded = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+
+        # ---- حذف الأعمدة غير المهمة إذا موجودة ----
+        for col in ['label','level']:
+            if col in df_encoded.columns:
+                df_encoded.drop(columns=[col], inplace=True)
+
+        # ---- التأكد من أن جميع أعمدة التدريب موجودة ----
+        for col in model_columns:
+            if col not in df_encoded.columns:
+                df_encoded[col] = 0
+        df_encoded = df_encoded[model_columns]
+
+        # ---- التنبؤ ----
+        preds = model.predict(df_encoded)
+        df['Prediction'] = preds
+        df['Prediction'] = df['Prediction'].map({0: "Normal", 1: "Attack"})
+
+        st.write("### Prediction Results")
+        st.dataframe(df[['Prediction']].head())
+
+        # ---- زر تحميل النتائج ----
+        output = df[['Prediction']].to_csv(index=False).encode('utf-8')
+        st.download_button("Download Predictions", output, "IDS_Output.csv", "text/csv")
