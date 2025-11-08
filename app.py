@@ -2,10 +2,10 @@ import pandas as pd
 import streamlit as st
 import joblib
 
-# Load model
+# Load trained model
 model = joblib.load("model.pkl")
 
-st.title("Intrusion Detection System (IDS) - NSL-KDD Cloud Demo")
+st.title("Intrusion Detection System (IDS) - Cloud Demo")
 st.write("Upload CSV file (with raw values for protocol_type, service, flag)")
 
 uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
@@ -13,14 +13,21 @@ uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     
-    # Keep the original columns to know which need encoding
+    # Columns to encode
     categorical_cols = ['protocol_type', 'service', 'flag']
     
-    # Apply one-hot encoding
+    # One-hot encoding
     df_encoded = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
     
-    # Drop non-feature columns if present
+    # Drop label/level if present
     df_encoded = df_encoded.drop(columns=[col for col in ['label','level'] if col in df_encoded.columns])
+    
+    # Ensure same columns as training (add missing columns with 0)
+    training_columns = joblib.load("model_columns.pkl")  # يجب أن تحفظ قائمة الأعمدة المستخدمة في التدريب
+    for col in training_columns:
+        if col not in df_encoded.columns:
+            df_encoded[col] = 0
+    df_encoded = df_encoded[training_columns]
     
     st.write("### Sample Encoded Data")
     st.write(df_encoded.head())
