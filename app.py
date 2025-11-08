@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import joblib
 import os
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Intrusion Detection IDS", layout="wide")
 st.title("Intrusion Detection System (IDS) - Cloud Demo")
@@ -47,6 +48,18 @@ else:
 
         st.write("### Prediction Results")
         st.dataframe(df[['Prediction']].head())
+
+        # ---- إحصائيات بسيطة ----
+        counts = df['Prediction'].value_counts()
+        st.write("### Prediction Summary")
+        st.write(counts)
+
+        # ---- رسم بياني ----
+        fig, ax = plt.subplots()
+        ax.bar(counts.index, counts.values, color=['green','red'])
+        ax.set_ylabel("Number of Records")
+        ax.set_title("Normal vs Attack Distribution")
+        st.pyplot(fig)
 
         # ---- زر تحميل النتائج ----
         output = df[['Prediction']].to_csv(index=False).encode('utf-8')
