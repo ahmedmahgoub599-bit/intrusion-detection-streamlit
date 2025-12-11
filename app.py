@@ -47,7 +47,7 @@ else:
         df['Prediction'] = df['Prediction'].map({0: "Normal", 1: "Attack"})
 
         st.write("### Prediction Results")
-        st.dataframe(df[['Prediction']].head())
+        st.dataframe(df[['Prediction']])
 
         # ---- إحصائيات بسيطة ----
         counts = df['Prediction'].value_counts()
@@ -64,3 +64,4 @@ else:
         # ---- زر تحميل النتائج ----
         output = df[['Prediction']].to_csv(index=False).encode('utf-8')
         st.download_button("Download Predictions", output, "IDS_Output.csv", "text/csv")
+
